@@ -1,0 +1,12 @@
+# アップロードしないファイル・フォルダを指定する
+config/
+dataset/
+model/
+wandb/
+
+# 無視しないファイル
+!/config/config_loader.py
+!/config/param_set.py
+!/dataset/dataset_maker.py
+!/dataset/load_dataset.py
+!/model/load_transformers.py
