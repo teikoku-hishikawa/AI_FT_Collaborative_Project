@@ -110,6 +110,8 @@ AI_FT_Collaborative Project/
     dataset = {
         "seed":[42], # 乱数シード
         "train_ratio":[0.8] # 訓練データの割合（例：0.8は80%を訓練、20%を検証に使用）
+        "SFT_train_size":[10000], # SFT用訓練データサイズ
+        "SFT_valid_size":[2000], # SFT用検証データサイズ
     }
     ```
     <br>

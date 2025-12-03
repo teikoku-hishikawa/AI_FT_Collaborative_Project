@@ -76,62 +76,13 @@ def load_and_tokenize_data(cfg, tokenizer, dataset_path, SFTbool=False):
     tokenized_ds = ds.map(tokenize_fn, batched=False)
     return tokenized_ds
 
-#支持チューニング用データセット読み込み関数
-# def load_and_tokenize_SFT_data(cfg, tokenizer):
-#     # Natural Questions
-#     random.seed(cfg["dataset"]["seed"])
-
-#     # データセット読み込み
-#     dataset = load_dataset("natural_questions", "default", split=f"train[:{cfg['dataset']['SFT_train_size'] + cfg['dataset']['SFT_valid_size']}]")
-
-#     # まずまとめてシャッフルしてから train/val を分割する
-#     shuffled = dataset.shuffle(seed=cfg["dataset"]["seed"])
-#     train_ds_all = shuffled.select(range(cfg["dataset"]["SFT_train_size"]))
-#     valid_ds_all = shuffled.select(range(cfg["dataset"]["SFT_train_size"], cfg["dataset"]["SFT_train_size"] + cfg["dataset"]["SFT_valid_size"]))
-
-
-#     def tokenize_nq(example):
-#         question = example["question_text"]
-#         context = example["document_text"]  # 複数contextを結合
-        
-#         # answer が存在する場合は最初の short_answer を利用
-#         annotations = example.get("annotations", [])
-#         if annotations and annotations[0].get("short_answers"):
-#             answer = annotations[0]["short_answers"][0]["text"][0]
-#         else:
-#             answer = ""
-
-#         full_input = f"Context:\n{context}\nQuestion:\n{question}\nAnswer:"
-#         tokenized = tokenizer(
-#             full_input,
-#             truncation=True,
-#             padding="max_length",
-#             max_length=cfg["model"]["max_seq_length"]
-#         )
-
-#         # ラベルは answer 部分のみ
-#         prompt_len = len(tokenizer(full_input).input_ids)
-#         labels = [-100]*prompt_len + tokenizer(answer, truncation=True, max_length=cfg["model"]["max_seq_length"])["input_ids"]
-#         labels = labels[:cfg["model"]["max_seq_length"]]
-#         labels += [-100] * (cfg["model"]["max_seq_length"] - len(labels))
-#         tokenized["labels"] = labels
-
-#         return tokenized
-
-    # # map でトークナイズ
-    # tokenized_train = train_ds_all.map(tokenize_nq, batched=False)
-    # tokenized_valid = valid_ds_all.map(tokenize_nq, batched=False)
-    # tokenized_ds = {
-    #     "train": tokenized_train,
-    #     "validation": tokenized_valid
-    # }
-    # return tokenized_ds
 
 #支持チューニング用データセット読み込み関数
 def load_and_tokenize_SFT_data(cfg, tokenizer):
     # 乱数シード設定
     random.seed(cfg["dataset"]["seed"])
-
+    print(f"=== Loading and tokenizing SFT dataset {cfg['dataset']['SFT_train_size'] + cfg['dataset']['SFT_valid_size']}個 ===")
+    
     # データセット(Natural Questions)読み込み
     dataset = load_dataset(
         "natural_questions", 

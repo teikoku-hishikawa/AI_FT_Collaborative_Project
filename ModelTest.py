@@ -85,10 +85,15 @@ class ModelTest:
         print(f"使用モデルパス/名前: {model_name}\n")
         print("パラメータファイルとモデルパスの取得が完了しました。\n")
 
+        # QLoRA の場合は 4bit でロードする必要があるので強制
+        load_in_4bit = bool(cfg["model"].get("load_in_4bit", False))
+        if cfg["peft"]["training_mode"].lower() == "qlora":
+            load_in_4bit = True
+
         # モデル・トークナイザーの読み込み
         print("=== モデル・トークナイザーの読み込み ===")
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        generator = self.load_model(model_path, device=device)
+        model, tokenizer = self.load_model(model_path, device=device, load_in_4bit=load_in_4bit)
 
         # === CSV出力先設定 ===
         print("=== モデルテスト開始 ===")
@@ -104,12 +109,13 @@ class ModelTest:
                 if user_input.lower() == "exit":
                     break
                 # モデルに入力して応答を取得
-                result = generator(
+                result = self.generate_text(
+                    model, 
+                    tokenizer, 
                     user_input, 
-                    max_new_tokens=1024, 
-                    do_sample=True, 
-                    temperature=0.7
-                )[0]["generated_text"]
+                    max_length=cfg["model"].get("max_seq_length", 1024),
+                    device=device
+                )
                 
                 # 結果の表示
                 print("\n--- 出力結果 ---")
@@ -128,12 +134,13 @@ class ModelTest:
             for idx, user_input in enumerate(inputs_list, 1):
                 print(f"[{idx}] User > {user_input}")
                 # モデルに入力して応答を取得
-                result = generator(
+                result = self.generate_text(
+                    model, 
+                    tokenizer,  
                     user_input, 
-                    max_new_tokens=1024, 
-                    do_sample=True, 
-                    temperature=0.7
-                )[0]["generated_text"]
+                    max_length=cfg["model"].get("max_seq_length", 1024),
+                    device=device
+                )
                 # 結果の後処理（入力文を削除）
                 if result.startswith(user_input):
                     result = result[len(user_input):].strip()
@@ -147,6 +154,24 @@ class ModelTest:
                 records.append([timestamp, user_input, result])
                 self.save_to_csv(csv_path, [[timestamp, user_input, result]])
     
+    def generate_text(self, model, tokenizer, prompt, max_length=1024, device="cuda"):
+        # 入力をトークナイズ
+        inputs = tokenizer(prompt, return_tensors="pt").to(device)
+
+        # モデルで生成
+        with torch.no_grad():
+            output_ids = model.generate(
+                **inputs,
+                max_length=max_length,
+                do_sample=True,
+                top_p=0.9,
+                temperature=0.7
+            )
+
+        # トークンを文字列に変換
+        generated_text = tokenizer.decode(output_ids[0], skip_special_tokens=True)
+        return generated_text
+
     #日付フォルダかどうかチェック(自動選択用)
     def is_valid_date_folder(self, name: str) -> bool:
         """フォルダ名がYYYYMMDD形式かをチェック"""
@@ -195,7 +220,7 @@ class ModelTest:
         return config_path, model_path, f"{paramdate}_train{self.config_num}_{model_name}"
 
     # トークナイザーとモデルの読み込み
-    def load_model(self, model_path_or_name, device="cpu"):
+    def load_model(self, model_path_or_name, device="cpu", load_in_4bit=False):
         """モデルをロードする"""
         print(f"\nモデルをロード中: {model_path_or_name}")
         print(f"使用デバイス: {device}\n")
@@ -210,14 +235,16 @@ class ModelTest:
         model = AutoModelForCausalLM.from_pretrained(
             model_path_or_name,
             torch_dtype="auto",
-            device_map="auto"
+            device_map="auto",
+            load_in_4bit=load_in_4bit
         )
         print("モデルをロードしました。")
         
         # tokenizer.to(device)
         model.to(device)
+        model.eval()
 
-        return pipeline("text-generation", model=model, tokenizer=tokenizer)
+        return model, tokenizer
 
     # csvファイルのユニークパス取得
     def get_unique_csv_path(self, model_name: str) -> str:
