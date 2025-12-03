@@ -2,6 +2,7 @@
 config/
 dataset/
 model/
+test/
 wandb/
 
 # 無視しないファイル

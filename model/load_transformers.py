@@ -20,8 +20,12 @@ except Exception:
 # -------------------
 # モデルとトークナイザーの読み込み
 # -------------------
-def load_model_and_tokenizer(cfg: dict):
-    model_name = cfg["model"]["name"]
+def load_model_and_tokenizer(cfg: dict, model=None):
+    if model is None:
+        model_name = cfg["model"]["name"]
+    else:
+        model_name = model
+
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     # GPT系モデルなどではpadding tokenが未定義の場合があるので定義
@@ -55,7 +59,7 @@ def load_model_and_tokenizer(cfg: dict):
 # 学習モードに応じたモデル準備（Full / LoRA / QLoRA 切替）
 # -------------------
 def setup_peft(model, cfg: dict):
-    
+
     # 学習方針を確認（存在しない場合は qlora を使う）
     mode = cfg["peft"].get("training_mode", "qlora")
 

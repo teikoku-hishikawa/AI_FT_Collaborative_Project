@@ -1,12 +1,16 @@
+import sys
 import os
 import json
 import random
 
+from datasets import load_dataset
 from openpyxl import load_workbook
+
+# from utils.seed_fixed import set_seed
 
 #ORGデータセットを参照し、Train/valid用のデータセットに再分配
 class DatasetMaker:
-    def __init__(self, makedate, header_row=1, train_ratio=0.8, seed=42):
+    def __init__(self, makedate, header_row=5, train_ratio=0.8, seed=42):
         self.header_row = header_row
         self.train_ratio = train_ratio
         self.seed = seed
@@ -20,6 +24,8 @@ class DatasetMaker:
         # 出力ディレクトリ作成(なければ)
         os.makedirs(self.jsonl_dir, exist_ok=True)
         os.makedirs(self.dataset_dir, exist_ok=True)
+        # シード値の設定
+        random.seed(seed)
 
     def main(self):
         # 既存のデータセットがあれば使用
@@ -42,6 +48,10 @@ class DatasetMaker:
         
         #QA形式とText形式から任意の割合で分配したtrain/valid用データセットを作成
         self.split_jsonl_files(jsonl_paths)
+
+        #日常会話データセットを既存のデータセットに追加
+        self.daily_dataset_plus(ratio=0.3)
+
 
     def ORG_to_dataset(self, ReffileType="QA"):
         #参照先確認
@@ -78,7 +88,7 @@ class DatasetMaker:
                                 elif any(keyword in header_text for keyword in ["回答", "answer", "response", "output"]):
                                     output_col = cell.column_letter
                             elif ReffileType == "Text":
-                                if any(keyword in header_text for keyword in ["本文", "原文", "text"]):
+                                if any(keyword in header_text for keyword in ["本文", "原文", "解説", "text"]):
                                     text_col = cell.column_letter
                         
                         #---- 必要な列が見つからない場合はスキップ ----
@@ -145,8 +155,6 @@ class DatasetMaker:
         print(f"✅ {len(jsonl_paths)} 件のファイルを結合しました → {output_path}")
 
     def split_jsonl_files(self, jsonl_paths):
-        # 乱数シード設定
-        random.seed(self.seed)
         # 出力ディレクトリ作成
         train_output_path = os.path.join(self.dataset_dir, "train.jsonl")
         valid_output_path = os.path.join(self.dataset_dir, "valid.jsonl")
@@ -196,6 +204,93 @@ class DatasetMaker:
         print(f"Train 合計: {total_train}")
         print(f"Valid 合計: {total_valid}")
         print(f"出力先: {self.dataset_dir}")
+
+    def daily_dialogue_dataset(self):
+        
+        output_path = os.path.join(self.jsonl_dir, "daily_dialogue_sft.jsonl")  # SFT 用に出力する JSONL
+        sft_data = []
+        for num in range(1, 5):
+            # 日常会話データセットのダウンロードとJSONL変換
+            input_path = os.path.join(self.Reffolder_dir, f"japanese-daily-dialogue-main/data", f"topic{num}.json" )  # ダウンロードした JSON ファイル
+            
+
+            # JSON ファイルを読み込み
+            with open(input_path, "r", encoding="utf-8") as f:
+                dialogues = json.load(f)
+
+            # 各対話を処理
+            for dialog in dialogues:
+
+                utts = dialog["utterances"]
+
+                for i in range(1, len(utts), 2):
+                    # turn_num=1 の発話
+                    turn1 = next((u["utterance"] for u in utts if u["turn_num"] == i), None)
+                    # turn_num=2 の発話
+                    turn2 = next((u["utterance"] for u in utts if u["turn_num"] == i+1), None)
+
+                    # 両方そろっていない場合はスキップ
+                    if turn1 is None or turn2 is None:
+                        continue
+
+                    sft_data.append({
+                        "input": turn1,
+                        "output": turn2
+                    })
+
+        # JSONL に書き出し
+        with open(output_path, "w", encoding="utf-8") as f:
+            for item in sft_data:
+                f.write(json.dumps(item, ensure_ascii=False) + "\n")
+
+        print(f"変換完了: {len(sft_data)} 件の対話を保存しました。")
+        return output_path
+
+    def daily_dataset_plus(self, ratio=0.3):
+        # 既存のデータセットに日常会話データセットを追加して新しいファイルを作成
+        daily_path = self.daily_dialogue_dataset()
+        # 出力ディレクトリ作成
+        train_output_path = os.path.join(self.dataset_dir, "train.jsonl")
+        valid_output_path = os.path.join(self.dataset_dir, "valid.jsonl")
+
+        # 1. 既存データ読み込み
+        with open(train_output_path, 'r', encoding='utf-8') as f:
+            train_data = [json.loads(line) for line in f]
+        with open(valid_output_path, 'r', encoding='utf-8') as f:
+            valid_data = [json.loads(line) for line in f]
+
+        n_train_add = int(len(train_data) * ratio)
+        n_valid_add = int(len(valid_data) * ratio)
+
+        # 2. 新規データ読み込み
+        with open(daily_path, 'r', encoding='utf-8') as f:
+            daily_data = [json.loads(line) for line in f]
+
+        if n_train_add + n_valid_add > len(daily_data):
+            raise ValueError("Not enough new data to satisfy requested ratios")
+
+        # 3. 新規データから重複なく抽出
+        sampled_train = random.sample(daily_data, n_train_add)
+        remaining_data = [d for d in daily_data if d not in sampled_train]
+        sampled_valid = random.sample(remaining_data, n_valid_add)
+
+        # 4. 既存データに追加
+        combined_train = train_data + sampled_train
+        combined_valid = valid_data + sampled_valid
+
+        # 5. シャッフル
+        random.shuffle(combined_train)
+        random.shuffle(combined_valid)
+
+        # 6. JSONLに書き出し
+        with open(train_output_path, 'w', encoding='utf-8') as f:
+            for item in combined_train:
+                f.write(json.dumps(item, ensure_ascii=False) + '\n')
+
+        with open(valid_output_path, 'w', encoding='utf-8') as f:
+            for item in combined_valid:
+                f.write(json.dumps(item, ensure_ascii=False) + '\n')
+
 
 if __name__ == "__main__":
     import datetime
