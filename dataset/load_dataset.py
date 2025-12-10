@@ -1,5 +1,5 @@
 import random
-from datasets import load_dataset
+from datasets import Dataset, load_dataset
 from transformers import AutoTokenizer
 
 # -----------------------------
@@ -81,33 +81,44 @@ def load_and_tokenize_data(cfg, tokenizer, dataset_path, SFTbool=False):
 def load_and_tokenize_SFT_data(cfg, tokenizer):
     # 乱数シード設定
     random.seed(cfg["dataset"]["seed"])
-    print(f"=== Loading and tokenizing SFT dataset {cfg['dataset']['SFT_train_size'] + cfg['dataset']['SFT_valid_size']}個 ===")
     
-    # データセット(Natural Questions)読み込み
+    # # データセット(Natural Questions)読み込み
+    # dataset = load_dataset(
+    #     "natural_questions", 
+    #     "default", 
+    #     split="train",
+    #     streaming=True,
+    # )
+    # データセット(hotpot_qa)読み込み
     dataset = load_dataset(
-        "natural_questions", 
-        "default", 
-        split=f"train[:{cfg['dataset']['SFT_train_size'] + cfg['dataset']['SFT_valid_size']}]"
+        "hotpot_qa", 
+        "fullwiki", 
+        split="train",
+        streaming=True,
     )
 
+    total = cfg["dataset"]["SFT_train_size"] + cfg["dataset"]["SFT_valid_size"]
+    dataset = dataset.take(total)
+
     # 一度だけシャッフルしてから train/val を分割
-    shuffled = dataset.shuffle(seed=cfg["dataset"]["seed"])
-    train_ds_all = shuffled.select(range(cfg["dataset"]["SFT_train_size"]))
-    valid_ds_all = shuffled.select(range(cfg["dataset"]["SFT_train_size"],
-                                         cfg["dataset"]["SFT_train_size"] + cfg["dataset"]["SFT_valid_size"]))
+    data_list = list(dataset)
+    random.shuffle(data_list)
+    train_ds_all = data_list[:cfg["dataset"]["SFT_train_size"]]
+    valid_ds_all = data_list[cfg["dataset"]["SFT_train_size"]:total]
 
     max_len = cfg["model"]["max_seq_length"]
 
     def tokenize_nq(example):
-        question = example["question_text"]
-        context = example["document_text"]
+        question = example["question"]
+        ctx_list = example["context"]
+
+        # context を結合
+        context = ""
+        for title, paragraph in ctx_list:
+            context += f"{title}\n{paragraph}\n\n"
 
         # answer抽出
-        annotations = example.get("annotations", [])
-        if annotations and annotations[0].get("short_answers"):
-            answer = annotations[0]["short_answers"][0]["text"][0]
-        else:
-            answer = ""
+        answer = example["answer"]
 
         full_prompt = f"Context:\n{context}\nQuestion:\n{question}\nAnswer:\n{answer}"
 
@@ -131,7 +142,7 @@ def load_and_tokenize_SFT_data(cfg, tokenizer):
         labels = [-100] * max_len
 
         # prompt のトークン数
-        prompt_len = sum(1 for id in tokenized_prompt["input_ids"] if id != tokenizer.pad_token_id)
+        prompt_len = sum(tid != tokenizer.pad_token_id for tid in enc["input_ids"])
 
         # answer を prompt の末尾に貼る（はみ出したら切る）
         for i, tid in enumerate(answer_ids):
@@ -146,8 +157,8 @@ def load_and_tokenize_SFT_data(cfg, tokenizer):
         return tokenized_prompt
 
     # map
-    tokenized_train = train_ds_all.map(tokenize_nq, batched=False)
-    tokenized_valid = valid_ds_all.map(tokenize_nq, batched=False)
+    tokenized_train = Dataset.from_list([tokenize_nq(e) for e in train_ds_all])
+    tokenized_valid = Dataset.from_list([tokenize_nq(e) for e in valid_ds_all])
     tokenized_ds = {
         "train": tokenized_train,
         "validation": tokenized_valid

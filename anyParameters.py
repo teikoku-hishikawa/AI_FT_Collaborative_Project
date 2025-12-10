@@ -10,7 +10,7 @@ peft = {
     "training_mode":["qlora"], # fine-tuningのモード（"full" or "lora" or "qlora"）
     "r":[8], # LoRAのランク
     "lora_alpha":[16], # LoRAのスケーリングファクター
-    "lora_dropout":[0.05], # LoRAのドロップアウト率 
+    "lora_dropout":[0], # LoRAのドロップアウト率 
     "target_modules":[
         ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
     ] # LoRAを適用するモジュール
