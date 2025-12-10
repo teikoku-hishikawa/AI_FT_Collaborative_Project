@@ -112,13 +112,31 @@ def load_and_tokenize_SFT_data(cfg, tokenizer):
         question = example["question"]
         ctx_list = example["context"]
 
-        # context を結合
-        context = ""
-        for title, paragraph in ctx_list:
-            context += f"{title}\n{paragraph}\n\n"
+        # context を安全に結合
+        context_parts = []
+        for item in ctx_list:
+            if isinstance(item, list):
+                # 要素数 2 以上なら OK（title, paragraph を使う）
+                if len(item) >= 2:
+                    title = str(item[0])
+                    paragraph = str(item[1])
+                    context_parts.append(f"{title}\n{paragraph}")
+                else:
+                    # list だが要素が少ない（無視）
+                    continue
+            elif isinstance(item, dict):
+                # dict 形式の context が来る場合の処理
+                title = item.get("title", "")
+                para = " ".join(item.get("sentences", []))
+                context_parts.append(f"{title}\n{para}")
+            else:
+                # その他の形式は無視
+                continue
+        # context を 1 つの文字列にまとめる
+        context = "\n\n".join(context_parts)
 
         # answer抽出
-        answer = example["answer"]
+        answer = example.get("answer", "")
 
         full_prompt = f"Context:\n{context}\nQuestion:\n{question}\nAnswer:\n{answer}"
 
@@ -142,7 +160,7 @@ def load_and_tokenize_SFT_data(cfg, tokenizer):
         labels = [-100] * max_len
 
         # prompt のトークン数
-        prompt_len = sum(tid != tokenizer.pad_token_id for tid in enc["input_ids"])
+        prompt_len = sum(tid != tokenizer.pad_token_id for tid in tokenized_prompt["input_ids"])
 
         # answer を prompt の末尾に貼る（はみ出したら切る）
         for i, tid in enumerate(answer_ids):

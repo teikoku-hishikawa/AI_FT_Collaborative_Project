@@ -213,9 +213,12 @@ class ModelTest:
         else:
             model_names = [d for d in os.listdir(model_path) if os.path.isdir(os.path.join(model_path, d))]
             model_names = sorted([d for d in model_names])
-            model_name = model_names[-1]
+            for model_dir in model_names:
+                if model_dir == "SFT":
+                    model_name = model_dir
+            if model_name == "":
+                model_name = model_names[-1]
             print(f"最新のモデル名を自動選択: {model_name}")
-            model_path = os.path.join(model_path, model_name)
 
         return config_path, model_path, f"{paramdate}_train{self.config_num}_{model_name}"
 
