@@ -211,7 +211,7 @@ class DatasetMaker:
         sft_data = []
         for num in range(1, 5):
             # 日常会話データセットのダウンロードとJSONL変換
-            input_path = os.path.join(self.Reffolder_dir, f"japanese-daily-dialogue-main/data", f"topic{num}.json" )  # ダウンロードした JSON ファイル
+            input_path = os.path.join(self.Reffolder_dir, f"japanese-daily-dialogue/data", f"topic{num}.json" )  # ダウンロードした JSON ファイル
             
 
             # JSON ファイルを読み込み

@@ -35,8 +35,7 @@ def load_and_tokenize_data(cfg, tokenizer, dataset_path, SFTbool=False):
             full_text = prompt + output
             # context = ""
             # full_text =  f"Context:\n{context}\nQuestion:\n{prompt}\nAnswer:\n{output}"
-
-
+            
             tokenized = tokenizer(
                 full_text,
                 truncation=True,

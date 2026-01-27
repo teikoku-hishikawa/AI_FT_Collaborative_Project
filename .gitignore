@@ -1,13 +1,43 @@
-# アップロードしないファイル・フォルダを指定する
-config/
-dataset/
-model/
+# =========================
+# dataset: 原則すべて無視
+# =========================
+dataset/**
+
+# ディレクトリ構造だけ復活（←これが超重要）
+!dataset/
+!dataset/**/
+
+# ORG データは完全無視
+dataset/ORG/**
+
+# dataset 配下のコードだけ追跡
+!dataset/*.py
+
+# =========================
+# model: 重量物除外、コードのみ
+# =========================
+model/**
+!model/
+!model/**/
+!model/*.py
+
+# =========================
+# config: コードのみ管理
+# =========================
+config/**
+!config/
+!config/**/
+!config/*.py
+config/*.yaml
+config/*.yml
+
+# =========================
+# その他
+# =========================
 test/
 wandb/
+RAG/
+画像/
+__pycache__/
+*.pyc
 
-# 無視しないファイル
-!/config/config_loader.py
-!/config/param_set.py
-!/dataset/dataset_maker.py
-!/dataset/load_dataset.py
-!/model/load_transformers.py
