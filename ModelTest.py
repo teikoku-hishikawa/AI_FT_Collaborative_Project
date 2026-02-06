@@ -5,6 +5,7 @@ import re
 import csv
 import sys
 import argparse
+import pandas as pd
 
 from datetime import datetime
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
@@ -31,9 +32,9 @@ class ModelTest:
         parser.add_argument("--model_name", type=str,
                             default=None,
                             help="動作テストモデル名（未指定時は最新モデル）")
-        parser.add_argument("--jsonl_path", type=str,
-                            default=os.path.join(os.path.dirname(__file__), "test", "prompt_set.jsonl"),
-                            help="既定入力用JSONLファイル（batchモード時必須）")
+        parser.add_argument("--batch_path", type=str,
+                            default=os.path.join(os.path.dirname(__file__), "test", "prompt_set.xlsx"),
+                            help="既定入力用エクセルファイル（batchモード時必須）")
         args = parser.parse_args()
         
         # 引数の保存
@@ -42,7 +43,7 @@ class ModelTest:
         self.paramdate = args.paramdate
         self.config_num = args.config_num
         self.model_name = args.model_name
-        self.jsonl_path = args.jsonl_path
+        self.batch_path = args.batch_path
 
         # 引数の妥当性確認
         print("\n=== 引数の妥当性確認 ===")
@@ -64,8 +65,8 @@ class ModelTest:
             print("config_numが指定されていません。1を自動設定します。")
 
         # JSONLファイルの存在確認（batchモード時）
-        if self.input_mode == "batch" and not os.path.isfile(self.jsonl_path):
-            print(f"指定されたJSONLファイルが存在しません: {self.jsonl_path}")
+        if self.input_mode == "batch" and not os.path.isfile(self.batch_path):
+            print(f"指定されたファイルが存在しません: {self.batch_path}")
             sys.exit(1)
 
         print("引数の妥当性確認が完了しました。\n")
@@ -129,7 +130,7 @@ class ModelTest:
 
         # batchモード(JSONL既定入力)
         elif self.input_mode == "batch":
-            inputs_list = load_jsonl(self.jsonl_path)
+            inputs_list = self.load_excel_as_prompts(self.batch_path, self.build_prompt_custom)
             print(f"=== バッチモード（{len(inputs_list)}件） ===")
             for idx, user_input in enumerate(inputs_list, 1):
                 print(f"[{idx}] User > {user_input}")
@@ -213,6 +214,7 @@ class ModelTest:
         else:
             model_names = [d for d in os.listdir(model_path) if os.path.isdir(os.path.join(model_path, d))]
             model_names = sorted([d for d in model_names])
+            model_name = ""
             for model_dir in model_names:
                 if model_dir == "SFT":
                     model_name = model_dir
@@ -248,6 +250,42 @@ class ModelTest:
         model.eval()
 
         return model, tokenizer
+
+    # エクセルからプロンプト作成
+    def load_excel_as_prompts(self, path, builder, sheet_name=0):
+        df = pd.read_excel(path, sheet_name=sheet_name)
+
+        prompts = []
+        for _, row in df.iterrows():
+            example = row.to_dict()
+            prompt = builder(example)
+            prompts.append(prompt)
+
+        return prompts
+
+    # プロンプトフォーマット
+    def build_prompt_custom(self, example):
+        def safe(v):
+            return "" if v is None else str(v)
+        
+        prompt = (
+            "以下の参考情報から、質問に答えてください。\n\n"
+            f"質問：{safe(example['Input'])}\n\n"
+            "参考情報：\n"
+        )
+
+        for i in range(1, 6):
+            src = safe(example.get(f"Source_{i}"))
+            ctx = safe(example.get(f"Context_{i}"))
+            if src or ctx:
+                prompt += f"（参考{i}）{src}\n{ctx}\n\n"
+
+        prompt += (
+            f"回答の方針：{safe(example.get('Context_know-how'))}\n\n"
+            "回答："
+        )
+
+        return prompt
 
     # csvファイルのユニークパス取得
     def get_unique_csv_path(self, model_name: str) -> str:
