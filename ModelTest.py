@@ -12,6 +12,8 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
 from config.config_loader import load_config
 
+from RAG.RAGinput import RAG
+
 # 任意モデルの動作テスト
 class ModelTest:
     def __init__(self):
@@ -105,16 +107,34 @@ class ModelTest:
         # 動作テストモードの選択
         # interactiveモード(任意入力)
         if self.input_mode == "interactive":
+            # データベース確認
+            print("===RAGデータベースを確認中===")
+            rag = RAG( 
+                os.path.join(os.path.dirname(__file__), "RAG", "data", "chunks_embedded.jsonl"),
+                max_contexts=5, 
+                score_threshold=0.7 
+                ) 
             while True:
+                
                 user_input = input("質問を入力してください（終了するには 'exit' と入力）： ")
                 if user_input.lower() == "exit":
                     break
+
+                results = rag.search(user_input) 
+                prompt = rag.generate_prompt(user_input, results) 
+                
+                # max_length = cfg["model"].get("max_seq_length", 1024)
+                max_length = 2048
+                prompt = prompt[:max_length]
+
+                print(prompt)
+
                 # モデルに入力して応答を取得
                 result = self.generate_text(
                     model, 
                     tokenizer, 
-                    user_input, 
-                    max_length=cfg["model"].get("max_seq_length", 1024),
+                    prompt, 
+                    max_length=max_length,
                     device=device
                 )
                 

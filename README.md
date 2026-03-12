@@ -129,7 +129,7 @@ AI_FT_Collaborative Project/
     　なお、コマンドラインに引数を設定する必要があります。引数を設定しない場合、最後に実行されたtrainingのparam_set_1.yamlにて設定されたデフォルトモデル（学習前モデル）を実施します。コマンドラインの引数の内訳は以下の通りです。
     ```　shell
     # 実行コマンド例
-    python ModelTest.py --input_mode interactive --model_mode trained --paramdate --config_num --model_name --jsonl_path
+    python ModelTest.py --input_mode interactive --model_mode trained
     '''
     input_mode = interactive　→　インプットを任意で設定する
     model_mode = trained　→　trainingモデルで動作テストする

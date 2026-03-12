@@ -1,7 +1,7 @@
 #configファイルのパラメータ（手動）
 model = {
     "name":["Qwen/Qwen2.5-7B-Instruct"], # モデル名("Qwen/Qwen2.5-14B-Instruct", "cyberagent/DeepSeek-R1-Distill-Qwen-14B-Japanese", "openai/gpt-oss-20b")
-    "max_seq_length":[2048], # 最大シーケンス長
+    "max_seq_length":[1024], # 最大シーケンス長
     "dtype":["float16"], # データ型（例：float16, float32, bfloat16）
     "load_in_4bit":[True] # 4bit量子化で読み込むか (True or False)
 }
@@ -20,8 +20,8 @@ training = {
     "seed":[42], # 乱数シード
     "output_dir":["./model"], # モデルの保存先
     "num_train_epochs":[1], # エポック数
-    "per_device_train_batch_size":[2], # trainバッチサイズ
-    "per_device_eval_batch_size":[2], # evalバッチサイズ
+    "per_device_train_batch_size":[1], # trainバッチサイズ
+    "per_device_eval_batch_size":[1], # evalバッチサイズ
     "learning_rate":[2e-4], # 学習率
     "logging_steps":[50], # ロギングのステップ数
     "eval_strategy":["steps"], # 評価の頻度 ("no", "steps", "epoch")
@@ -38,6 +38,6 @@ training = {
 dataset = {
     "seed":[42], # 乱数シード
     "train_ratio":[0.8], # 訓練データの割合（例：0.8は80%を訓練、20%を検証に使用）
-    "SFT_train_size":[100], # SFT用訓練データサイズ
-    "SFT_valid_size":[20], # SFT用検証データサイズ
+    "SFT_publish_size":[10000], # SFT用訓練データサイズ
+    "SFT_custom_size":[2000], # SFT用検証データサイズ
 }

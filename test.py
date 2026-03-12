@@ -1,4 +1,20 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer
+import requests
 
-model = AutoModelForCausalLM.from_pretrained("cyberagent/DeepSeek-R1-Distill-Qwen-14B-Japanese", torch_dtype="auto", device_map="cuda:0")
-toke
+OLLAMA_URL = "http://localhost:11434/api/generate"
+
+payload = {
+    "model": "qwen3:8b",
+    "prompt": "日本語で『OllamaとPythonの接続テスト成功』とだけ返してください。",
+    "stream": False
+}
+
+response = requests.post(
+    OLLAMA_URL,
+    json=payload,
+    timeout=180
+)
+
+response.raise_for_status()
+
+result = response.json()
+print(result["response"])

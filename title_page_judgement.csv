@@ -1,0 +1,5 @@
+file_path,is_title_page,document_title,created_date
+/home/hishikawa/AI/AI_FT_Collaborative_Project/RAG/OCR/data/ORG/test/実務マニュアル（本編分割1／3）20250331.docx,False,,
+/home/hishikawa/AI/AI_FT_Collaborative_Project/RAG/OCR/data/ORG/test/実務マニュアル（表紙）20250331.docx,True,基礎調査の実務マニュアル（急傾斜地の崩壊）,2025-03
+/home/hishikawa/AI/AI_FT_Collaborative_Project/RAG/OCR/data/ORG/test/実務マニュアル（本編分割3／3）20250331.docx,False,,
+/home/hishikawa/AI/AI_FT_Collaborative_Project/RAG/OCR/data/ORG/test/実務マニュアル（本編分割2／3）20250331.docx,False,,
