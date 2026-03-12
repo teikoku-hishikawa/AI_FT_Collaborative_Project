@@ -45,7 +45,7 @@ RAG/OCR/**
 # =========================
 test/
 wandb/
-RAG/
+# RAG/
 画像/
 __pycache__/
 *.pyc
