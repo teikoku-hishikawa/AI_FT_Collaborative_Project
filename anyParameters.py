@@ -1,7 +1,7 @@
 #configファイルのパラメータ（手動）
 model = {
-    "name":["Qwen/Qwen2.5-7B-Instruct"], # モデル名("Qwen/Qwen2.5-14B-Instruct", "cyberagent/DeepSeek-R1-Distill-Qwen-14B-Japanese", "openai/gpt-oss-20b")
-    "max_seq_length":[1024], # 最大シーケンス長
+    "name":["Qwen/Qwen3-4B"], # モデル名("Qwen/Qwen2.5-14B-Instruct", "cyberagent/DeepSeek-R1-Distill-Qwen-14B-Japanese", "openai/gpt-oss-20b")
+    "max_seq_length":[2048], # 最大シーケンス長
     "dtype":["float16"], # データ型（例：float16, float32, bfloat16）
     "load_in_4bit":[True] # 4bit量子化で読み込むか (True or False)
 }
@@ -12,7 +12,7 @@ peft = {
     "lora_alpha":[16], # LoRAのスケーリングファクター
     "lora_dropout":[0], # LoRAのドロップアウト率 
     "target_modules":[
-        ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+        ["q_proj", "k_proj", "v_proj", "o_proj"]
     ] # LoRAを適用するモジュール
 }
 

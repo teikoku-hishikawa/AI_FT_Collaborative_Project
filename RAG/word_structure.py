@@ -6,7 +6,7 @@ from docx.document import Document as _Document
 from docx.table import Table
 from docx.text.paragraph import Paragraph
 
-from .PDF_loader import pageNumber_set
+from PDF_loader import pageNumber_set
 
 class StructureParser:
 
@@ -361,7 +361,7 @@ if __name__ == "__main__":
     import pandas as pd
 
     from tqdm import tqdm
-    from .title_AIAgent import CoverAgent
+    from title_AIAgent import CoverAgent
 
     doc_path = os.path.join(os.path.dirname(__file__), "data", "ORG")
     csv_dir  = os.path.join(os.path.dirname(__file__), "data", "CSV")

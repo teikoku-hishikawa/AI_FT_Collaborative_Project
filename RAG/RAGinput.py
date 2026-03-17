@@ -5,6 +5,7 @@ import numpy as np
 
 from .embedding_model import embed_query
 
+from tqdm import tqdm
 from collections import defaultdict
 from rank_bm25 import BM25Okapi
 from janome.tokenizer import Tokenizer
@@ -23,7 +24,7 @@ class RAG:
         # ------------------------
         # load data
         # ------------------------
-
+        
         with open(jsonl, "r", encoding="utf-8") as f:
             for line in f:
                 r = json.loads(line)
@@ -48,7 +49,6 @@ class RAG:
         # ------------------------
 
         self.parent_map = defaultdict(list)
-
         for i, r in enumerate(self.records):
 
             m = r["metadata"]
@@ -125,7 +125,7 @@ class RAG:
         debug_chunks = []
 
         for idx in candidate_ids:
-
+            
             record = self.records[idx]
 
             vec_score = vec_score_map.get(idx, 0)
@@ -197,7 +197,6 @@ class RAG:
         # ------------------------
 
         results = []
-
         for parent_id, scores in ranked_parents:
 
             pscore = parent_score(scores)
@@ -224,14 +223,18 @@ class RAG:
 
         for i, (score, c) in enumerate(contexts):
             # context_text += f"[score:{round(score,3)}]\n"
-            context_text += f"（参考{i}）" + c["metadata"]["document_title"] + "\n"
-            context_text += c["text"] + "\n"
+            context_text += f"（参考{i+1}）" + c["metadata"]["document_title"] + "\n"
+            lines = c["text"].splitlines()
+            context = "\n".join(lines[3:])
+            context_text += context + "\n\n"
 
         prompt = (
             "以下の参考情報から、質問に答えてください。\n\n"
             f"質問：{query}\n\n"
             "参考情報：\n"
             f"{context_text}"
+            "回答の方針：nan\n\n"
+            "回答："
         )
 #         prompt = f"""
 # 以下の仕様書情報を参考に質問に回答してください。

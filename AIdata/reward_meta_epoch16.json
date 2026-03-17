@@ -1,0 +1,11 @@
+{
+  "alpha": 0.5449999999999999,
+  "diff_lo": 0.15714285714285714,
+  "diff_hi": 0.8428571428571427,
+  "questions_total": 3134,
+  "filtered_easy": 153,
+  "filtered_hard": 2603,
+  "learning_zone_count": 378,
+  "training_pairs_count": 3024,
+  "mean_raw_reward": 0.32554196987173223
+}

@@ -100,7 +100,7 @@ class ModelTest:
 
         # === CSV出力先設定 ===
         print("=== モデルテスト開始 ===")
-        csv_path = self.get_unique_csv_path(model_name)
+        csv_path = self.get_unique_csv_path()
         print(f"\n出力結果は CSV にも保存されます → {csv_path}\n")
         records = []
 
@@ -137,7 +137,7 @@ class ModelTest:
                     max_length=max_length,
                     device=device
                 )
-                
+
                 # 結果の表示
                 print("\n--- 出力結果 ---")
                 print(result)
@@ -145,8 +145,8 @@ class ModelTest:
 
                 # CSV保存
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                records.append([timestamp, user_input, result])
-                self.save_to_csv(csv_path, [[timestamp, user_input, result]])
+                records.append([timestamp, model_name, self.input_mode, user_input, result])
+                self.save_to_csv(csv_path, [[timestamp, model_name, self.input_mode, user_input, result]])
 
         # batchモード(JSONL既定入力)
         elif self.input_mode == "batch":
@@ -154,12 +154,17 @@ class ModelTest:
             print(f"=== バッチモード（{len(inputs_list)}件） ===")
             for idx, user_input in enumerate(inputs_list, 1):
                 print(f"[{idx}] User > {user_input}")
+
+                max_length = cfg["model"].get("max_seq_length", 1024)
+                if len(user_input) > max_length:
+                    user_input = user_input[:max_length]
+
                 # モデルに入力して応答を取得
                 result = self.generate_text(
                     model, 
                     tokenizer,  
                     user_input, 
-                    max_length=cfg["model"].get("max_seq_length", 1024),
+                    max_length=max_length,
                     device=device
                 )
                 # 結果の後処理（入力文を削除）
@@ -172,8 +177,8 @@ class ModelTest:
 
                 # CSV保存
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                records.append([timestamp, user_input, result])
-                self.save_to_csv(csv_path, [[timestamp, user_input, result]])
+                records.append([timestamp, model_name, self.input_mode, user_input, result])
+                self.save_to_csv(csv_path, [[timestamp, model_name, self.input_mode, user_input, result]])
     
     def generate_text(self, model, tokenizer, prompt, max_length=1024, device="cuda"):
         # 入力をトークナイズ
@@ -308,28 +313,32 @@ class ModelTest:
         return prompt
 
     # csvファイルのユニークパス取得
-    def get_unique_csv_path(self, model_name: str) -> str:
+    def get_unique_csv_path(self, unique: bool = False) -> str:
         # 保存ディレクトリ
         output_dir = os.path.join(os.path.dirname(__file__), "test")
         os.makedirs(output_dir, exist_ok=True)
 
         # ベースファイル名
-        base_filename = f"LLMtest_{model_name}_results"
+        timestamp = datetime.now().strftime('%y%m%d')
+        base_filename = f"{timestamp}_LLMtest_results"
         ext = ".csv"
         csv_path = os.path.join(output_dir, base_filename + ext)
 
         # 同名ファイルが存在する場合、連番を付ける
-        counter = 1
-        while os.path.exists(csv_path):
-            csv_path = os.path.join(output_dir, f"{base_filename}_{counter}{ext}")
-            counter += 1
+        if unique:
+            counter = 1
+            while os.path.exists(csv_path):
+                csv_path = os.path.join(output_dir, f"{base_filename}_{counter}{ext}")
+                counter += 1
+        else:
+            csv_path = os.path.join(output_dir, f"{base_filename}{ext}")
 
         return csv_path
 
     # 結果をCSVに保存
     def save_to_csv(self, csv_path, records):
         """結果をCSVに保存"""
-        header = ["timestamp", "input_text", "generated_text"]
+        header = ["timestamp", "model_name", "model_mode", "input_text", "generated_text"]
         file_exists = os.path.isfile(csv_path)
         with open(csv_path, mode="a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)

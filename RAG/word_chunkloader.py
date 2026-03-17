@@ -8,8 +8,8 @@ import pandas as pd
 
 from tqdm import tqdm
 
-from .title_AIAgent import CoverAgent
-from .word_structure import StructureParser
+from title_AIAgent import CoverAgent
+from word_structure import StructureParser
 
 doc_path_def = os.path.join(os.path.dirname(__file__), "data", "ORG")
 
@@ -243,7 +243,7 @@ class chunkloader:
         all_chunks = self.chunkID(all_chunks)
 
         # bodyの改行をなくす
-        all_chunks = self.context_cleen(all_chunks)
+        # all_chunks = self.context_cleen(all_chunks)
 
         # hierarchy_path + embedding_text
         all_chunks = self.enrich_chunks(all_chunks)

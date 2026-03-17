@@ -107,7 +107,7 @@ class Embedder:
 
 if __name__ == "__main__":
     import os
-    from .word_chunkloader import chunkloader
+    from word_chunkloader import chunkloader
     
     # Word2Chunk
     print("===Word to Chunk Loading===")
