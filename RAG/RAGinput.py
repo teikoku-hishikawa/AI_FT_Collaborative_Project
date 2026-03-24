@@ -214,39 +214,44 @@ class RAG:
     # generate
     # ------------------------
 
-    def generate_prompt(self, query, contexts):
+    def generate_prompt(self, query, contexts, max_seq_length=None):
 
         if len(contexts) == 0:
             return "仕様書内に該当する情報が見つかりませんでした。"
 
         context_text = ""
 
-        for i, (score, c) in enumerate(contexts):
-            # context_text += f"[score:{round(score,3)}]\n"
-            context_text += f"（参考{i+1}）" + c["metadata"]["document_title"] + "\n"
-            lines = c["text"].splitlines()
-            context = "\n".join(lines[3:])
-            context_text += context + "\n\n"
-
         prompt = (
             "以下の参考情報から、質問に答えてください。\n\n"
             f"質問：{query}\n\n"
             "参考情報：\n"
-            f"{context_text}"
+        )
+
+        for i, (score, c) in enumerate(contexts):
+            context_text = f"（参考{i+1}）" + c["metadata"]["document_title"] + "\n"
+            lines = c["text"].splitlines()
+            context = "\n".join(lines[3:]) + "\n\n"
+            context_text = context_text + context
+
+            check_prompt = (
+                f"{prompt}"
+                f"{context_text}"
+            )
+
+            if max_seq_length:
+                if len(check_prompt) > max_seq_length - 14:
+                    break
+                else:
+                    prompt = check_prompt
+            else:
+                prompt = check_prompt
+                
+        prompt = (
+            f"{prompt}"
             "回答の方針：nan\n\n"
             "回答："
         )
-#         prompt = f"""
-# 以下の仕様書情報を参考に質問に回答してください。
-
-# 【仕様書情報】
-# {context_text}
-
-# 【質問】
-# {query}
-
-# 【回答】
-# """
+        
         return prompt
 
     def generate_answer(self, prompt):
