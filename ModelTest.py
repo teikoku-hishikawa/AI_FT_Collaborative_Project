@@ -120,12 +120,11 @@ class ModelTest:
                 if user_input.lower() == "exit":
                     break
 
-                results = rag.search(user_input) 
-                prompt = rag.generate_prompt(user_input, results) 
-                
                 # max_length = cfg["model"].get("max_seq_length", 1024)
                 max_length = 2048
-                prompt = prompt[:max_length]
+                
+                results = rag.search(user_input) 
+                prompt = rag.generate_prompt(user_input, results, max_length) 
 
                 print(prompt)
 
@@ -137,6 +136,10 @@ class ModelTest:
                     max_length=max_length,
                     device=device
                 )
+
+                # 結果の後処理（入力文を削除）
+                if result.startswith(user_input):
+                    result = result[len(user_input):].strip()
 
                 # 結果の表示
                 print("\n--- 出力結果 ---")

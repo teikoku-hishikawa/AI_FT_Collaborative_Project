@@ -172,8 +172,8 @@ Context_5：設ri-速1¢ (屯位1時問につきキロ メートル) 視距(単�
 
             results.append(row)
 
-            if i == 10:
-                break
+            # if i == 10:
+            #     break
 
         # CSV出力
 
